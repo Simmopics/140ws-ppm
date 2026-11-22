@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#003A6B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>140WS PPM Checklist</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.30.0/lib/msal-browser.min.js"></script>
+<style>
+:root{--blue:#00539B;--navy:#003A6B;--green:#1E8E3E;--amber:#E8A200;--red:#C62828;--bg:#F3F6FA;--card:#fff;--ink:#1B2430;--mute:#6B7785;--line:#DCE3EB}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:17px}
+header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:10}
+.hrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:19px;flex:1;min-width:180px}
+.brand small{display:block;font-weight:400;font-size:13px;opacity:.8}
+.pill{border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;background:rgba(255,255,255,.15);white-space:nowrap}
+.pill.ok{background:var(--green)}.pill.off{background:var(--amber);color:#222}.pill.err{background:var(--red)}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+.hbtn{background:#fff;color:var(--navy);padding:8px 14px;font-weight:700;font-size:14px}
+.bar{height:8px;background:rgba(255,255,255,.2);border-radius:4px;margin-top:10px;overflow:hidden}
+.bar>div{height:100%;background:#7CD992;width:0;transition:width .3s}
+.stats{font-size:13px;margin-top:6px;opacity:.9}
+nav{display:flex;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center}
+nav select,nav .seg button{font-size:15px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#fff}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0}
+.seg button.on{background:var(--blue);color:#fff}
+.tab{padding:9px 16px;background:#E7EEF6;color:var(--navy);font-weight:700}
+.tab.on{background:var(--navy);color:#fff}
+main{padding:12px 16px 80px;max-width:1100px;margin:0 auto}
+.group{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.ghead{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;user-select:none}
+.ghead h3{margin:0;font-size:18px;flex:1}
+.count{font-size:14px;color:var(--mute)}
+.gdone{color:var(--green);font-weight:700}
+.chev{transition:transform .2s;color:var(--mute)}
+.group.open .chev{transform:rotate(90deg)}
+.gbody{display:none;border-top:1px solid var(--line)}
+.group.open .gbody{display:block}
+.task{border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:0}
+.thead{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.tname{flex:1}
+.tname b{font-family:Menlo,Consolas,monospace;font-size:16px}
+.tname span{display:block;font-size:13px;color:var(--mute);margin-top:2px}
+.badge{font-size:12px;font-weight:700;padding:4px 9px;border-radius:12px;background:#E7EEF6;color:var(--navy)}
+.badge.done{background:#DFF3E5;color:var(--green)}
+.badge.fault{background:#FFF1CC;color:#8A5A00}
+.badge.q{background:#FFE7E7;color:var(--red)}
+.tbody{display:none;padding:4px 16px 16px;background:#FAFCFE}
+.task.open .tbody{display:block}
+.ck{display:flex;gap:14px;align-items:flex-start;padding:11px 4px;border-bottom:1px dashed var(--line);cursor:pointer}
+.ck:last-of-type{border-bottom:0}
+.box{flex:0 0 30px;height:30px;border:2px solid var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fff}
+.ck.on .box{background:var(--green);border-color:var(--green)}
+.ck.on .box::after{content:"";width:9px;height:16px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-2px)}
+.ck.on .ctext{color:var(--mute);text-decoration:line-through}
+.ctext{padding-top:4px;line-height:1.35}
+.tact{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:11px 16px;font-weight:700;font-size:15px;background:#E7EEF6;color:var(--navy)}
+.btn.pri{background:var(--blue);color:#fff}
+.btn.warn{background:#FFF1CC;color:#8A5A00}
+.btn.warn.on{background:var(--amber);color:#222}
+textarea{width:100%;min-height:70px;margin-top:10px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px}
+.photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.photos img{width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.center{text-align:center;padding:50px 20px}
+.center h2{color:var(--navy)}
+.err{background:#FFE7E7;color:var(--red);padding:12px;border-radius:10px;margin:10px 0;font-size:14px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;font-size:15px}
+th{background:#1F3864;color:#fff;text-align:left;padding:10px}
+td{padding:10px;border-bottom:1px solid var(--line)}
+tr:nth-child(even) td{background:#F5F8FC}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.tile b{display:block;font-size:28px;color:var(--navy)}
+.tile span{font-size:13px;color:var(--mute)}
+.rhead{background:#1F3864;color:#fff;padding:16px;border-radius:12px}
+.rhead small{color:#D6E4F0}
+.fault{background:#fff;border-left:5px solid var(--amber);padding:10px 12px;margin:8px 0;border-radius:8px}
+@media print{header,nav,.noprint{display:none!important}main{padding:0}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div class="brand">140WS PPM Checklist<small id="who">Airtron Services · 140 William St</small></div>
+    <span id="net" class="pill">…</span>
+    <span id="sync" class="pill">…</span>
+    <button class="hbtn" id="btnSync">Sync</button>
+    <button class="hbtn" id="btnAuth">Sign in</button>
+  </div>
+  <div class="bar"><div id="prog"></div></div>
+  <div class="stats" id="stats"></div>
+</header>
+<nav class="noprint">
+  <button class="tab on" data-view="list">Checklist</button>
+  <button class="tab" data-view="report">Report</button>
+  <select id="month"></select>
+  <div class="seg" id="groupSeg"><button data-g="level" class="on">By level</button><button data-g="bucket">By equipment</button></div>
+  <select id="filter"><option value="all">All units</option><option value="open">Open only</option><option value="fault">Faults only</option></select>
+</nav>
+<main id="main"><div class="center"><h2>Loading…</h2></div></main>
+
+<script>
+/* ================= CONFIG ================= */
+const CFG = {
+  clientId: "b3d18412-3432-482f-b636-c9d590e0fb41",
+  tenantId: "f8db06f2-7cd2-47c0-b045-46ab2848d4f7",
+  planId:   "P9TgYy7sFUSUS83RKfzclMiqr3y5",
+  scopes:   ["Tasks.ReadWrite"]
+};
+const G = "https://graph.microsoft.com/v1.0";
+const LS = { data:"ppm.data.v1", queue:"ppm.queue.v1", ui:"ppm.ui.v1", local:"ppm.local.v1" };
+
+/* ================= STORAGE ================= */
+function lsGet(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+let DATA  = lsGet(LS.data, null);   // {buckets:{id:name}, tasks:[{id,title,bucketId,pct,etag,details:{etag,checklist:{key:{title,isChecked,orderHint}},description}}], fetched}
+let QUEUE = lsGet(LS.queue, {});    // taskId -> {checks:{key:bool}, pct:num|null, desc:str|null}
+let UI    = lsGet(LS.ui, {view:"list", group:"level", month:null, filter:"all", open:{}});
+let LOCAL = lsGet(LS.local, {});    // taskId -> {fault:bool, note:str}
+let lastErr = "";
+let syncing = false;
+
+/* ================= AUTH ================= */
+let msalApp = null, account = null;
+const AUTH_OK = typeof msal !== "undefined" && CFG.clientId.indexOf("__") !== 0;
+async function initAuth(){
+  if(!AUTH_OK) return;
+  msalApp = new msal.PublicClientApplication({
+    auth:{ clientId:CFG.clientId, authority:"https://login.microsoftonline.com/"+CFG.tenantId, redirectUri: location.origin+location.pathname.replace(/index\.html$/,"") },
+    cache:{ cacheLocation:"localStorage" }
+  });
+  await msalApp.initialize();
+  try{
+    const r = await msalApp.handleRedirectPromise();
+    if(r && r.account) msalApp.setActiveAccount(r.account);
+  }catch(e){ lastErr = "Sign-in: "+(e.errorMessage||e.message); }
+  account = msalApp.getActiveAccount() || msalApp.getAllAccounts()[0] || null;
+  if(account) msalApp.setActiveAccount(account);
+}
+async function token(interactive){
+  if(!msalApp) throw new Error("App not configured");
+  if(!account){ if(interactive){ await msalApp.loginRedirect({scopes:CFG.scopes}); } throw new Error("Not signed in"); }
+  try{
+    const r = await msalApp.acquireTokenSilent({scopes:CFG.scopes, account});
+    return r.accessToken;
+  }catch(e){
+    if(interactive){ await msalApp.acquireTokenRedirect({scopes:CFG.scopes, account}); }
+    throw new Error("Sign-in expired – tap Sign in");
+  }
+}
+
+/* ================= GRAPH ================= */
+async function gx(method, path, body, etag){
+  const t = await token(false);
+  const h = {Authorization:"Bearer "+t};
+  if(body){ h["Content-Type"]="application/json"; }
+  if(etag){ h["If-Match"]=etag; }
+  if(method==="PATCH"){ h["Prefer"]="return=representation"; }
+  const r = await fetch(path.indexOf("http")===0?path:G+path, {method, headers:h, body: body?JSON.stringify(body):undefined});
+  if(r.status===204) return {};
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok){ const e=new Error((j.error&&j.error.message)||("HTTP "+r.status)); e.status=r.status; throw e; }
+  return j;
+}
+async function getAll(path){
+  let out=[], url=path;
+  while(url){ const j=await gx("GET",url); out=out.concat(j.value||[]); url=j["@odata.nextLink"]||null; }
+  return out;
+}
+async function batchDetails(ids){
+  const res = {};
+  for(let i=0;i<ids.length;i+=20){
+    const reqs = ids.slice(i,i+20).map((id,n)=>({id:String(n), method:"GET", url:"/planner/tasks/"+id+"/details"}));
+    const j = await gx("POST","/$batch",{requests:reqs});
+    (j.responses||[]).forEach(r=>{
+      const id = ids[i+Number(r.id)];
+      if(r.status===200) res[id] = {etag:r.body["@odata.etag"], checklist:r.body.checklist||{}, description:r.body.description||""};
+    });
+  }
+  return res;
+}
+
+/* ================= LOAD ================= */
+async function loadFromPlanner(){
+  const buckets = await getAll("/planner/plans/"+CFG.planId+"/buckets");
+  const tasks = await getAll("/planner/plans/"+CFG.planId+"/tasks");
+  const det = await batchDetails(tasks.map(t=>t.id));
+  DATA = {
+    fetched: new Date().toISOString(),
+    buckets: Object.fromEntries(buckets.map(b=>[b.id,b.name])),
+    tasks: tasks.map(t=>({id:t.id, title:t.title, bucketId:t.bucketId, pct:t.percentComplete, etag:t["@odata.etag"], due:t.dueDateTime, details:det[t.id]||{etag:null,checklist:{},description:""}}))
+  };
+  // re-apply pending local changes on top of fresh server data
+  Object.entries(QUEUE).forEach(([id,q])=>applyLocal(id,q));
+  lsSet(LS.data, DATA);
+}
+function applyLocal(id,q){
+  const t = DATA && DATA.tasks.find(x=>x.id===id); if(!t) return;
+  Object.entries(q.checks||{}).forEach(([k,v])=>{ if(t.details.checklist[k]) t.details.checklist[k].isChecked=v; });
+  if(q.pct!=null) t.pct=q.pct;
+  if(q.desc!=null) t.details.description=q.desc;
+}
+
+/* ================= SYNC QUEUE ================= */
+function enqueue(id, patch){
+  const q = QUEUE[id] || {checks:{}, pct:null, desc:null};
+  if(patch.checks) Object.assign(q.checks, patch.checks);
+  if(patch.pct!=null) q.pct = patch.pct;
+  if(patch.desc!=null) q.desc = patch.desc;
+  QUEUE[id]=q; lsSet(LS.queue, QUEUE); lsSet(LS.data, DATA);
+  renderHeader();
+  clearTimeout(enqueue._t); enqueue._t=setTimeout(flush, 800);
+}
+async function flush(){
+  if(syncing || !navigator.onLine || !account) { renderHeader(); return; }
+  const ids = Object.keys(QUEUE); if(!ids.length){ renderHeader(); return; }
+  syncing = true; renderHeader();
+  for(const id of ids){
+    const q = QUEUE[id];
+    try{
+      const hasChecks = Object.keys(q.checks||{}).length>0;
+      if(hasChecks || q.desc!=null){
+        const d = await gx("GET","/planner/tasks/"+id+"/details");
+        const body = {};
+        if(hasChecks){
+          body.checklist = {};
+          Object.entries(q.checks).forEach(([k,v])=>{ if(d.checklist && d.checklist[k]) body.checklist[k]={"@odata.type":"#microsoft.graph.plannerChecklistItem", isChecked:v}; });
+          if(!Object.keys(body.checklist).length) delete body.checklist;
+        }
+        if(q.desc!=null) body.description = q.desc;
+        if(Object.keys(body).length) await gx("PATCH","/planner/tasks/"+id+"/details", body, d["@odata.etag"]);
+      }
+      if(q.pct!=null){
+        const t = await gx("GET","/planner/tasks/"+id);
+        if(t.percentComplete!==q.pct) await gx("PATCH","/planner/tasks/"+id, {percentComplete:q.pct}, t["@odata.etag"]);
+      }
+      delete QUEUE[id]; lsSet(LS.queue, QUEUE); lastErr="";
+    }catch(e){
+      if(e.status===404){ delete QUEUE[id]; lsSet(LS.queue, QUEUE); continue; }
+      lastErr = e.message; break;
+    }
+  }
+  syncing = false; renderHeader();
+}
+
+/* ================= MODEL HELPERS ================= */
+function parts(title){ const p=title.split("|").map(s=>s.trim()); return {unit:p[0]||title, level:p[1]||"Other", month:p[2]||"Undated"}; }
+function items(t){ return Object.entries(t.details.checklist||{}).map(([k,v])=>({key:k,...v})).sort((a,b)=>(a.orderHint||"")<(b.orderHint||"")?-1:((a.orderHint||"")>(b.orderHint||"")?1:0)); }
+function monthsList(){
+  if(!DATA) return [];
+  const s = [...new Set(DATA.tasks.map(t=>parts(t.title).month))];
+  return s.sort((a,b)=>new Date("1 "+b)-new Date("1 "+a));
+}
+function monthTasks(){ return DATA ? DATA.tasks.filter(t=>parts(t.title).month===UI.month) : []; }
+function levelRank(l){ const s=l.replace(/level/i,"").trim(); if(/b2/i.test(s))return -20; if(/b1/i.test(s))return -10; if(/gnd|ground/i.test(s))return 0; const m=s.match(/\d+/); return m?parseInt(m[0]):900; }
+function isFault(t){ return !!(LOCAL[t.id]&&LOCAL[t.id].fault); }
+
+/* ================= ACTIONS ================= */
+function toggleItem(t, key){
+  const it = t.details.checklist[key]; if(!it) return;
+  it.isChecked = !it.isChecked;
+  const all = items(t); const done = all.filter(i=>i.isChecked).length;
+  const pct = done===all.length ? 100 : (done>0 ? 50 : 0);
+  const patch = {checks:{[key]:it.isChecked}};
+  if(pct!==t.pct){ t.pct=pct; patch.pct=pct; }
+  enqueue(t.id, patch); render();
+}
+function completeAll(t){
+  const checks={}; items(t).forEach(i=>{ if(!i.isChecked){ t.details.checklist[i.key].isChecked=true; checks[i.key]=true; } });
+  t.pct=100; enqueue(t.id,{checks,pct:100}); render();
+}
+function setFault(t, on){
+  LOCAL[t.id] = LOCAL[t.id]||{}; LOCAL[t.id].fault=on; lsSet(LS.local, LOCAL); render();
+}
+function saveNote(t, text){
+  LOCAL[t.id] = LOCAL[t.id]||{}; LOCAL[t.id].note=text; lsSet(LS.local, LOCAL);
+  const base = (t.details.description||"").replace(/\n?\[Tablet note\][\s\S]*$/,"").trim();
+  const desc = (base?base+"\n":"") + (text.trim()? "[Tablet note] "+(isFault(t)?"FAULT – ":"")+text.trim() : "");
+  t.details.description = desc; enqueue(t.id,{desc});
+}
+
+/* ================= PHOTOS (IndexedDB, local only) ================= */
+let db=null;
+function idb(){ return new Promise(res=>{ try{ const r=indexedDB.open("ppm-photos",1); r.onupgradeneeded=()=>r.result.createObjectStore("p",{keyPath:"k"}); r.onsuccess=()=>{db=r.result;res(db)}; r.onerror=()=>res(null);}catch(e){res(null)} }); }
+async function addPhoto(t,file){
+  if(!db) await idb(); if(!db) return;
+  const b = await shrink(file);
+  const k = t.id+"|"+Date.now();
+  db.transaction("p","readwrite").objectStore("p").put({k,task:t.id,blob:b});
+  setTimeout(()=>{ render(); }, 200);
+}
+function photosFor(id){ return new Promise(res=>{ if(!db) return res([]); const out=[]; const c=db.transaction("p").objectStore("p").openCursor(); c.onsuccess=e=>{const x=e.target.result; if(x){ if(x.value.task===id) out.push(x.value); x.continue(); } else res(out);}; c.onerror=()=>res(out); }); }
+function shrink(file){ return new Promise(res=>{ const img=new Image(), u=URL.createObjectURL(file); img.onload=()=>{ let w=img.width,h=img.height,m=1600; if(w>m||h>m){const s=Math.min(m/w,m/h);w=Math.round(w*s);h=Math.round(h*s);} const c=document.createElement("canvas"); c.width=w;c.height=h; c.getContext("2d").drawImage(img,0,0,w,h); c.toBlob(b=>{URL.revokeObjectURL(u);res(b||file)},"image/jpeg",.72); }; img.onerror=()=>res(file); img.src=u; }); }
+
+/* ================= RENDER ================= */
+const $ = id=>document.getElementById(id);
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function renderHeader(){
+  const n = $("net"), s=$("sync");
+  if(!navigator.onLine){ n.className="pill off"; n.textContent="Offline"; } else { n.className="pill ok"; n.textContent="Online"; }
+  const pend = Object.keys(QUEUE).length;
+  if(lastErr){ s.className="pill err"; s.textContent="Sync error"; s.title=lastErr; }
+  else if(syncing){ s.className="pill"; s.textContent="Syncing…"; }
+  else if(pend){ s.className="pill off"; s.textContent=pend+" waiting to sync"; }
+  else { s.className="pill ok"; s.textContent="All synced"; }
+  $("btnAuth").textContent = account ? "Sign out" : "Sign in";
+  $("who").textContent = account ? (account.name||account.username)+" · 140 William St" : "Airtron Services · 140 William St";
+  const ts = monthTasks(); let it=0, ic=0, done=0;
+  ts.forEach(t=>{ const a=items(t); it+=a.length; ic+=a.filter(i=>i.isChecked).length; if(t.pct===100) done++; });
+  $("prog").style.width = it? (100*ic/it)+"%" : "0";
+  $("stats").textContent = ts.length ? `${UI.month}: ${done}/${ts.length} units complete · ${ic}/${it} steps · ${ts.filter(isFault).length} faults` + (DATA?` · updated ${new Date(DATA.fetched).toLocaleString("en-AU",{dateStyle:"short",timeStyle:"short"})}`:"") : "";
+}
+
+function renderNav(){
+  const ms = monthsList();
+  if(!UI.month || ms.indexOf(UI.month)<0) UI.month = ms[0]||null;
+  $("month").innerHTML = ms.map(m=>`<option ${m===UI.month?"selected":""}>${esc(m)}</option>`).join("");
+  document.querySelectorAll("#groupSeg button").forEach(b=>b.classList.toggle("on", b.dataset.g===UI.group));
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on", b.dataset.view===UI.view));
+  $("filter").value = UI.filter;
+  $("groupSeg").style.display = $("filter").style.display = UI.view==="list"?"":"none";
+}
+
+function render(){
+  lsSet(LS.ui, UI);
+  renderNav(); renderHeader();
+  const m = $("main");
+  if(!AUTH_OK){ m.innerHTML = `<div class="center"><h2>Setup needed</h2><p>The Microsoft app ID hasn't been added to this page yet.</p></div>`; return; }
+  if(!DATA){
+    m.innerHTML = account
+      ? `<div class="center"><h2>Loading tasks from Planner…</h2>${lastErr?`<div class="err">${esc(lastErr)}</div>`:""}</div>`
+      : `<div class="center"><h2>Sign in to load this month's PPM tasks</h2><p>Uses your Airtron Microsoft account. Tasks come straight from the <b>140WS PPM</b> plan in Planner.</p><button class="btn pri" onclick="signIn()">Sign in with Microsoft</button>${lastErr?`<div class="err">${esc(lastErr)}</div>`:""}</div>`;
+    return;
+  }
+  if(UI.view==="report") return renderReport();
+  let ts = monthTasks();
+  if(UI.filter==="open") ts = ts.filter(t=>t.pct!==100);
+  if(UI.filter==="fault") ts = ts.filter(isFault);
+  const groups = {};
+  ts.forEach(t=>{ const k = UI.group==="level" ? parts(t.title).level : (DATA.buckets[t.bucketId]||"Other"); (groups[k]=groups[k]||[]).push(t); });
+  const keys = Object.keys(groups).sort((a,b)=> UI.group==="level" ? (levelRank(a)-levelRank(b)||a.localeCompare(b)) : a.localeCompare(b));
+  if(!keys.length){ m.innerHTML = `<div class="center"><h2>Nothing to show</h2><p>No tasks match this month and filter.</p></div>`; return; }
+  m.innerHTML = keys.map(k=>{
+    const g = groups[k].sort((a,b)=>parts(a.title).unit.localeCompare(parts(b.title).unit,undefined,{numeric:true}));
+    const d = g.filter(t=>t.pct===100).length; const gid="g:"+UI.group+":"+k;
+    return `<div class="group ${UI.open[gid]?"open":""}" data-gid="${esc(gid)}">
+      <div class="ghead" data-act="g"><span class="chev">▶</span><h3>${esc(k)}</h3><span class="count ${d===g.length?"gdone":""}">${d}/${g.length} done</span></div>
+      <div class="gbody">${g.map(taskHtml).join("")}</div></div>`;
+  }).join("");
+  document.querySelectorAll(".photos[data-id]").forEach(async el=>{ const ps=await photosFor(el.dataset.id); el.innerHTML=ps.map(p=>`<img src="${URL.createObjectURL(p.blob)}">`).join(""); });
+}
+
+function taskHtml(t){
+  const p = parts(t.title), all=items(t), c=all.filter(i=>i.isChecked).length;
+  const loc = LOCAL[t.id]||{}; const queued = !!QUEUE[t.id];
+  const sub = UI.group==="level" ? (DATA.buckets[t.bucketId]||"") : p.level;
+  return `<div class="task ${UI.open["t:"+t.id]?"open":""}" data-id="${t.id}">
+    <div class="thead" data-act="t"><div class="tname"><b>${esc(p.unit)}</b><span>${esc(sub)}</span></div>
+      ${loc.fault?`<span class="badge fault">Fault</span>`:""}${queued?`<span class="badge q">Not synced</span>`:""}
+      <span class="badge ${t.pct===100?"done":""}">${t.pct===100?"Done":c+"/"+all.length}</span></div>
+    <div class="tbody">
+      ${all.map(i=>`<div class="ck ${i.isChecked?"on":""}" data-act="ck" data-key="${esc(i.key)}"><div class="box"></div><div class="ctext">${esc(i.title)}</div></div>`).join("")}
+      <div class="tact">
+        <button class="btn pri" data-act="all">Mark all done</button>
+        <button class="btn warn ${loc.fault?"on":""}" data-act="fault">${loc.fault?"Fault flagged":"Flag fault"}</button>
+        <label class="btn">Add photo<input type="file" accept="image/*" capture="environment" hidden data-act="photo"></label>
+      </div>
+      <textarea placeholder="Notes / fault details (saved to the Planner task)" data-act="note">${esc(loc.note||"")}</textarea>
+      <div class="photos" data-id="${t.id}"></div>
+    </div></div>`;
+}
+
+function renderReport(){
+  const ts = monthTasks(); const m=$("main");
+  const byB = {}; ts.forEach(t=>{ const b=DATA.buckets[t.bucketId]||"Other"; (byB[b]=byB[b]||{n:0,d:0}); byB[b].n++; if(t.pct===100) byB[b].d++; });
+  let it=0,ic=0; ts.forEach(t=>{const a=items(t); it+=a.length; ic+=a.filter(i=>i.isChecked).length;});
+  const done = ts.filter(t=>t.pct===100).length; const faults = ts.filter(t=>isFault(t)||(LOCAL[t.id]&&LOCAL[t.id].note));
+  m.innerHTML = `<div class="rhead"><h2 style="margin:0">140 William St – Monthly PPM Report</h2><small>${esc(UI.month)} · Airtron Services Pty Ltd · generated ${new Date().toLocaleString("en-AU")}</small></div>
+  <div class="tiles"><div class="tile"><b>${done}/${ts.length}</b><span>Units complete</span></div><div class="tile"><b>${it?Math.round(100*ic/it):0}%</b><span>Checklist steps done</span></div><div class="tile"><b>${ts.filter(isFault).length}</b><span>Faults flagged</span></div><div class="tile"><b>${Object.keys(QUEUE).length}</b><span>Unsynced units</span></div></div>
+  <table><tr><th>Equipment</th><th>Units</th><th>Complete</th><th>Status</th></tr>
+  ${Object.keys(byB).sort().map(b=>`<tr><td>${esc(b)}</td><td>${byB[b].n}</td><td>${byB[b].d}</td><td>${byB[b].d===byB[b].n?"<b style='color:#1E8E3E'>DONE</b>":"<b style='color:#8A5A00'>OPEN</b>"}</td></tr>`).join("")}</table>
+  <h3>Faults & notes</h3>${faults.length?faults.map(t=>`<div class="fault"><b>${esc(parts(t.title).unit)}</b> – ${esc(parts(t.title).level)}${isFault(t)?" · <b>FAULT</b>":""}<br>${esc((LOCAL[t.id]||{}).note||"")}</div>`).join(""):"<p>None recorded.</p>"}
+  <h3>Open units</h3><p>${ts.filter(t=>t.pct!==100).map(t=>esc(parts(t.title).unit)).join(", ")||"None"}</p>
+  <p style="font-size:13px;color:#6B7785">Tasks per AS/NZS 3666.2 & 3666.3, AS 1668.2, AIRAH DA19. Source: Microsoft Planner – 140WS PPM.</p>
+  <button class="btn pri noprint" onclick="window.print()">Print / Save as PDF</button>`;
+}
+
+/* ================= EVENTS ================= */
+document.addEventListener("click", e=>{
+  const a = e.target.closest("[data-act]"); if(!a) return;
+  const act = a.dataset.act;
+  if(act==="g"){ const g=a.closest(".group"); UI.open[g.dataset.gid]=!UI.open[g.dataset.gid]; g.classList.toggle("open"); lsSet(LS.ui,UI); return; }
+  const tEl = a.closest(".task"); if(!tEl) return; const t = DATA.tasks.find(x=>x.id===tEl.dataset.id);
+  if(act==="t"){ UI.open["t:"+t.id]=!UI.open["t:"+t.id]; tEl.classList.toggle("open"); lsSet(LS.ui,UI); }
+  if(act==="ck") toggleItem(t, a.dataset.key);
+  if(act==="all") completeAll(t);
+  if(act==="fault") setFault(t, !isFault(t));
+});
+document.addEventListener("change", e=>{
+  const a=e.target; const tEl=a.closest&&a.closest(".task"); if(!tEl) return; const t=DATA.tasks.find(x=>x.id===tEl.dataset.id);
+  if(a.dataset.act==="note") saveNote(t, a.value);
+  if(a.dataset.act==="photo" && a.files[0]) addPhoto(t, a.files[0]);
+});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{ UI.view=b.dataset.view; render(); });
+document.querySelectorAll("#groupSeg button").forEach(b=>b.onclick=()=>{ UI.group=b.dataset.g; render(); });
+$("month").onchange = e=>{ UI.month=e.target.value; render(); };
+$("filter").onchange = e=>{ UI.filter=e.target.value; render(); };
+$("btnSync").onclick = ()=>refresh(true);
+$("btnAuth").onclick = ()=>{ if(account){ if(Object.keys(QUEUE).length){ lastErr="Sync pending changes before signing out"; renderHeader(); return; } msalApp.logoutRedirect({account}); } else signIn(); };
+window.addEventListener("online", ()=>refresh(false));
+window.addEventListener("offline", renderHeader);
+function signIn(){ token(true).catch(()=>{}); }
+
+async function refresh(manual){
+  if(!account){ render(); return; }
+  if(!navigator.onLine){ render(); return; }
+  try{
+    await flush();
+    if(!Object.keys(QUEUE).length || manual){ await loadFromPlanner(); }
+    lastErr="";
+  }catch(e){ lastErr=e.message; }
+  render();
+}
+
+/* ================= BOOT ================= */
+(async function(){
+  try{ render(); }catch(e){}
+  idb();
+  try{ await initAuth(); }catch(e){ lastErr=e.message; }
+  render();
+  if(account) refresh(false);
+  setInterval(()=>{ if(navigator.onLine && account) flush(); }, 30000);
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+})();
+</script>
+</body>
+</html>
